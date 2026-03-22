@@ -38,7 +38,6 @@ export default class BasePage {
         await el.scrollIntoView();
         await el.waitForClickable();
         await el.click();
-        await browser.pause(300);
         await browser.execute((elem: any) => {
             elem.value = '';
             elem.dispatchEvent(new Event('input', { bubbles: true }));
@@ -46,18 +45,15 @@ export default class BasePage {
         }, el);
         await browser.keys(['Control', 'a', 'Backspace']);
         await browser.keys(['Control', 'a', 'Delete']);
-        await browser.pause(100);
 
         const valueStr = value.toString();
         for (const char of valueStr) {
             await browser.keys(char);
-            await browser.pause(80);
         }
 
         await browser.execute((element) => {
             element.blur();
         }, el);
-        await browser.pause(300);
 
         const numericStr = value.toString().replace(/[^0-9.]/g, '');
         await browser.waitUntil(async () => {

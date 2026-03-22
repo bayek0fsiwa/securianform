@@ -97,7 +97,6 @@ class CalculatorPage extends BasePage {
             const classList = await modal.getAttribute('class');
             return classList?.includes('show');
         }, { timeout: 5000, timeoutMsg: 'Modal did not finish animation' });
-        await browser.pause(500);
 
         await this.additionalIncome.waitForDisplayed({ timeout: 5000 });
         await this.additionalIncome.waitForClickable({ timeout: 5000 });
