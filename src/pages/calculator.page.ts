@@ -1,9 +1,10 @@
+import { browser } from '@wdio/globals';
 import BasePage from './base.page';
 import { RetirementData } from '../data/retirementData';
 
 class CalculatorPage extends BasePage {
 
-    // Locators
+    // Required-field inputs
     get inputCurrentAge() { return $('#current-age'); }
     get inputRetirementAge() { return $('#retirement-age'); }
     get inputCurrentIncome() { return $('#current-income'); }
@@ -11,12 +12,17 @@ class CalculatorPage extends BasePage {
     get inputCurrentSavings() { return $('#current-total-savings'); }
     get inputAnnualSavings() { return $('#current-annual-savings'); }
     get inputSavingsIncreaseRate() { return $('#savings-increase-rate'); }
+
+    // Social Security
     get labelSocialSecurityYes() { return $('label[for="yes-social-benefits"]'); }
     get labelSocialSecurityNo() { return $('label[for="no-social-benefits"]'); }
     get containerSocialSecurityFields() { return $$('.social-security-field'); }
     get labelMarried() { return $('label[for="married"]'); }
     get inputSocialSecurityOverride() { return $('#social-security-override'); }
+
+    // Default Values modal
     get adjustDefaultValuesLink() { return $('a[data-bs-target="#default-values-modal"]'); }
+    get modalDefaultValues() { return $('#default-values-modal'); }
     get additionalIncome() { return $('#additional-income'); }
     get retirementDuration() { return $('#retirement-duration'); }
     get includeInflation() { return $('input[name="inflation-inclusion"][value="Y"]'); }
@@ -25,12 +31,15 @@ class CalculatorPage extends BasePage {
     get preRetirementROI() { return $('#pre-retirement-roi'); }
     get postRetirementROI() { return $('#post-retirement-roi'); }
     get saveButton() { return $('button[onclick="savePersonalizedValues();"]'); }
+
+    // Calculate + Results
     get btnCalculate() { return $('button=Calculate'); }
     get resultsContainer() { return $('#calculator-results-container'); }
     get resultMessage() { return $('#result-message'); }
     get retirementAmount() { return $('#retirement-amount-results'); }
+    get resultsChart() { return $('#results-chart'); }
 
-    // Validation Locators
+    // Validation error elements
     get alertRequiredFields() { return $('#calculator-input-alert-desc'); }
     get errorCurrentAge() { return $('#invalid-current-age-error'); }
     get errorRetirementAge() { return $('#invalid-retirement-age-error'); }
@@ -39,7 +48,7 @@ class CalculatorPage extends BasePage {
     get errorAnnualSavings() { return $('#invalid-current-annual-savings-error'); }
     get errorSavingsIncreaseRate() { return $('#invalid-savings-increase-rate-error'); }
 
-    // Page Open
+    // Page navigation
     public async open() {
         await super.open('');
     }
@@ -73,51 +82,46 @@ class CalculatorPage extends BasePage {
         await this.setSocialSecurity(true);
 
         // Wait for the first social security field to become visible
-        const ssFields = await this.containerSocialSecurityFields;
-        await ssFields[0].waitForDisplayed({ timeout: 5000 });
+        const ssFields = this.containerSocialSecurityFields;
+        if (await ssFields.length > 0) {
+            await (await ssFields)[0].waitForDisplayed({ timeout: 5000 });
+        }
+
         if (data.relationshipStatus === 'Married') {
             await this.clickElement(this.labelMarried);
         }
         if (data.socialSecurityOverride) {
-            await this.setMaskedValue(
-                this.inputSocialSecurityOverride,
-                data.socialSecurityOverride
-            );
+            await this.setMaskedValue(this.inputSocialSecurityOverride, data.socialSecurityOverride);
         }
     }
 
     public async adjustDefaultValues(data: RetirementData) {
-        // Open the modal
         await this.clickElement(this.adjustDefaultValuesLink);
-        // Wait for the modal and its first input to be ready
-        const modal = await $('#default-values-modal');
-        await modal.waitForDisplayed({ timeout: 10000 });
 
+        const modal = await this.modalDefaultValues;
+        await modal.waitForDisplayed({ timeout: 10000 });
         await browser.waitUntil(async () => {
             const classList = await modal.getAttribute('class');
             return classList?.includes('show');
-        }, { timeout: 5000, timeoutMsg: 'Modal did not finish animation' });
+        }, { timeout: 5000, timeoutMsg: 'Default values modal did not finish opening animation' });
 
         await this.additionalIncome.waitForDisplayed({ timeout: 5000 });
         await this.additionalIncome.waitForClickable({ timeout: 5000 });
 
-        // Additional income during retirement
         if (data.additionalIncome !== undefined) {
             await this.setMaskedValue(this.additionalIncome, data.additionalIncome);
         }
-        // Years retirement needs to last
         if (data.yearsRetirementNeedsToLast !== undefined) {
             await this.setInputValue(this.retirementDuration, data.yearsRetirementNeedsToLast);
         }
-        // Post-retirement income increases with inflation
         if (data.postRetirementInflation !== undefined) {
             const radioId = data.postRetirementInflation ? 'include-inflation' : 'exclude-inflation';
             const radioLabel = await $(`label[for="${radioId}"]`);
 
             await radioLabel.waitForExist({ timeout: 5000 });
-            await browser.execute((id) => {
-                const el = document.querySelector(`label[for="${id}"]`) as HTMLElement;
-                if (el) el.click();
+            await browser.execute((id: string) => {
+                const el = document.querySelector(`label[for="${id}"]`) as HTMLElement | null;
+                el?.click();
             }, radioId);
 
             const radioButton = await $(`#${radioId}`);
@@ -127,41 +131,36 @@ class CalculatorPage extends BasePage {
                 timeoutMsg: `Inflation radio button #${radioId} was not selected after click`
             });
         }
-        // Percent of final annual income desired in retirement
         if (data.percentFinalIncomeDesired !== undefined) {
             await this.setMaskedValue(this.retirementAnnualIncome, data.percentFinalIncomeDesired);
         }
-        // Pre-retirement investment return
         if (data.preRetirementInvestmentReturn !== undefined) {
             await this.setMaskedValue(this.preRetirementROI, data.preRetirementInvestmentReturn);
         }
-        // Post-retirement investment return
         if (data.postRetirementInvestmentReturn !== undefined) {
             await this.setMaskedValue(this.postRetirementROI, data.postRetirementInvestmentReturn);
         }
-        // Click "Save changes"
+
         await this.clickElement(this.saveButton);
-        // Wait for modal to close
         await modal.waitForDisplayed({ timeout: 10000, reverse: true });
     }
 
     public async submitForm() {
         await this.clickElement(this.btnCalculate);
 
-        // Wait for the results chart canvas to become visible.
-        const resultsChart = await $('#results-chart');
-        await resultsChart.waitForDisplayed({
+        // Wait for the results chart to appear
+        await this.resultsChart.waitForDisplayed({
             timeout: 20000,
-            timeoutMsg: '#results-chart canvas did not appear after Calculate was clicked'
+            timeoutMsg: '#results-chart did not appear after Calculate was clicked'
         });
 
-        // Also wait for the result message text to be populated.
+        // Wait for the result message text to be populated
         await browser.waitUntil(async () => {
             const text = await this.resultMessage.getText();
             return text.trim().length > 0;
         }, {
             timeout: 10000,
-            timeoutMsg: 'Result message not populated'
+            timeoutMsg: 'Result message was not populated after calculation'
         });
     }
 }

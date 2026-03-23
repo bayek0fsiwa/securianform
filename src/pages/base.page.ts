@@ -10,33 +10,39 @@ export default class BasePage {
         await browser.url(path);
     }
 
+    // Wait for an element to be displayed, scrolls it into view, and waits until it is enabled/clickable.
+    private async waitForReady(el: WebdriverIO.Element, clickable = false) {
+        await el.waitForDisplayed();
+        await el.scrollIntoView();
+        if (clickable) {
+            await el.waitForClickable();
+        } else {
+            await el.waitForEnabled();
+        }
+    }
+
     public async setInputValue(element: any, value: string | number) {
         const el = await element;
         const selector = el.selector;
-        logger(`Setting value ${value} to ${selector}`);
-        allureReporter.addStep(`Setting value ${value} to ${selector}`);
-        await el.waitForDisplayed();
-        await el.scrollIntoView();
-        await el.waitForEnabled();
+        logger(`Setting value "${value}" on ${selector}`);
+        allureReporter.addStep(`Setting value "${value}" on ${selector}`);
+        await this.waitForReady(el);
         await el.click();
         await browser.keys(['Control', 'a']);
-        await browser.keys('Delete');
         await el.setValue(value.toString());
         await browser.keys('Tab');
         await browser.waitUntil(async () => {
             const raw = await el.getValue();
             return raw.includes(value.toString());
-        }, { timeout: 3000, timeoutMsg: `Value was not set in ${selector}` });
+        }, { timeout: 3000, timeoutMsg: `Value "${value}" was not set in ${selector}` });
     }
 
     public async setMaskedValue(element: any, value: string | number) {
         const el = await element;
         const selector = el.selector;
-        logger(`Setting masked value ${value} to ${selector}`);
-        allureReporter.addStep(`Setting masked value ${value} to ${selector}`);
-        await el.waitForDisplayed();
-        await el.scrollIntoView();
-        await el.waitForClickable();
+        logger(`Setting masked value "${value}" on ${selector}`);
+        allureReporter.addStep(`Setting masked value "${value}" on ${selector}`);
+        await this.waitForReady(el, true);
         await el.click();
         await browser.execute((elem: any) => {
             elem.value = '';
@@ -44,26 +50,19 @@ export default class BasePage {
             elem.dispatchEvent(new Event('change', { bubbles: true }));
         }, el);
         await browser.keys(['Control', 'a', 'Backspace']);
-        await browser.keys(['Control', 'a', 'Delete']);
-
-        const valueStr = value.toString();
-        for (const char of valueStr) {
+        for (const char of value.toString()) {
             await browser.keys(char);
         }
-
-        await browser.execute((element) => {
-            element.blur();
-        }, el);
+        await browser.execute((elem: any) => elem.blur(), el);
 
         const numericStr = value.toString().replace(/[^0-9.]/g, '');
         await browser.waitUntil(async () => {
-            const raw = await el.getValue();
-            const rawNumeric = raw.replace(/[^0-9.]/g, '');
+            const rawNumeric = (await el.getValue()).replace(/[^0-9.]/g, '');
             return rawNumeric.includes(numericStr);
         }, {
             timeout: 5000,
             interval: 500,
-            timeoutMsg: `Value ${value} not set correctly in masked input for ${selector}. Found: ${await el.getValue()}`
+            timeoutMsg: `Masked value "${value}" not confirmed in ${selector}`
         });
     }
 
@@ -72,13 +71,12 @@ export default class BasePage {
         const selector = el.selector;
         logger(`Clicking on ${selector}`);
         allureReporter.addStep(`Clicking on ${selector}`);
-        await el.waitForDisplayed();
-        await el.waitForClickable();
+        await this.waitForReady(el, true);
         await browser.execute((elem: any) => {
-            elem.scrollIntoView({ block: 'center', inline: 'nearest' });
-        }, el);
-        await browser.execute((elem: any) => {
-            elem.click();
+            if (elem) {
+                elem.scrollIntoView({ block: 'center', inline: 'nearest' });
+                elem.click();
+            }
         }, el);
     }
 }
