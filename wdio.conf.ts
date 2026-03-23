@@ -13,7 +13,12 @@ export const config: WebdriverIO.Config = {
 
     capabilities: [{
         browserName: 'chrome',
-        acceptInsecureCerts: true
+        acceptInsecureCerts: true,
+        'goog:chromeOptions': {
+            args: [
+                ...(process.env.CI || process.env.HEADLESS ? ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'] : [])
+            ]
+        }
     }],
 
     logLevel: 'info',
