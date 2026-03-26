@@ -21,7 +21,7 @@ export default class BasePage {
         }
     }
 
-    public async setInputValue(element: any, value: string | number) {
+    public async setInputValue(element: WebdriverIO.Element, value: string | number) {
         const el = await element;
         const selector = el.selector;
         logger(`Setting value "${value}" on ${selector}`);
