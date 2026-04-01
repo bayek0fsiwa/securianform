@@ -1,6 +1,8 @@
-import { browser } from '@wdio/globals';
+import { browser, expect, $, $$ } from '@wdio/globals';
+import { logger } from '../utils/logger';
 import BasePage from './base.page';
 import { RetirementData } from '../data/retirementData';
+import { ActionUtils } from '../utils/ActionUtils';
 
 class CalculatorPage extends BasePage {
 
@@ -49,119 +51,210 @@ class CalculatorPage extends BasePage {
     get errorSavingsIncreaseRate() { return $('#invalid-savings-increase-rate-error'); }
 
     // Page navigation
-    public async open() {
-        await super.open('');
+    /**
+     * Opens the calculator page.
+     */
+    public async open(): Promise<void> {
+        try {
+            await super.open('');
+        } catch (error) {
+            logger(`Error in open: ${error}`);
+            throw error;
+        }
     }
 
     // Actions
 
-    public async fillRequiredFields(data: RetirementData) {
-        await this.setInputValue(this.inputCurrentAge, data.currentAge);
-        await this.setInputValue(this.inputRetirementAge, data.retirementAge);
-        await this.setMaskedValue(this.inputCurrentIncome, data.currentAnnualIncome);
-        await this.setMaskedValue(this.inputCurrentSavings, data.currentRetirementSavings);
-        await this.setMaskedValue(this.inputAnnualSavings, data.currentRetirementContribution);
-        await this.setMaskedValue(this.inputSavingsIncreaseRate, data.annualContributionIncrease);
-    }
-
-    public async fillOptionalIncomeFields(data: RetirementData) {
-        if (data.spouseAnnualIncome) {
-            await this.setMaskedValue(this.inputSpouseIncome, data.spouseAnnualIncome);
+    /**
+     * Fills the required fields for the retirement calculator.
+     * @param data The retirement data.
+     */
+    public async fillRequiredFields(data: RetirementData): Promise<void> {
+        try {
+            await ActionUtils.setInputValue(this.inputCurrentAge, data.currentAge);
+            await ActionUtils.setInputValue(this.inputRetirementAge, data.retirementAge);
+            await ActionUtils.setMaskedValue(this.inputCurrentIncome, data.currentAnnualIncome);
+            await ActionUtils.setMaskedValue(this.inputCurrentSavings, data.currentRetirementSavings);
+            await ActionUtils.setMaskedValue(this.inputAnnualSavings, data.currentRetirementContribution);
+            await ActionUtils.setMaskedValue(this.inputSavingsIncreaseRate, data.annualContributionIncrease);
+        } catch (error) {
+            logger(`Error in fillRequiredFields: ${error}`);
+            throw error;
         }
     }
 
-    public async setSocialSecurity(enable: boolean) {
-        if (enable) {
-            await this.clickElement(this.labelSocialSecurityYes);
-        } else {
-            await this.clickElement(this.labelSocialSecurityNo);
+    /**
+     * Fills the optional spouse income field.
+     * @param data The retirement data.
+     */
+    public async fillOptionalIncomeFields(data: RetirementData): Promise<void> {
+        try {
+            if (data.spouseAnnualIncome) {
+                await ActionUtils.setMaskedValue(this.inputSpouseIncome, data.spouseAnnualIncome);
+            }
+        } catch (error) {
+            logger(`Error in fillOptionalIncomeFields: ${error}`);
+            throw error;
         }
     }
 
-    public async fillSocialSecurityDetails(data: RetirementData) {
-        await this.setSocialSecurity(true);
-
-        // Wait for the first social security field to become visible
-        const ssFields = this.containerSocialSecurityFields;
-        if (await ssFields.length > 0) {
-            await (await ssFields)[0].waitForDisplayed({ timeout: 5000 });
-        }
-
-        if (data.relationshipStatus === 'Married') {
-            await this.clickElement(this.labelMarried);
-        }
-        if (data.socialSecurityOverride) {
-            await this.setMaskedValue(this.inputSocialSecurityOverride, data.socialSecurityOverride);
+    /**
+     * Toggles the Social Security options.
+     * @param enable Boolean to enable or disable social security.
+     */
+    public async setSocialSecurity(enable: boolean): Promise<void> {
+        try {
+            if (enable) {
+                await ActionUtils.clickElement(this.labelSocialSecurityYes);
+            } else {
+                await ActionUtils.clickElement(this.labelSocialSecurityNo);
+            }
+        } catch (error) {
+            logger(`Error in setSocialSecurity: ${error}`);
+            throw error;
         }
     }
 
-    public async adjustDefaultValues(data: RetirementData) {
-        await this.clickElement(this.adjustDefaultValuesLink);
+    /**
+     * Fills the Social Security details.
+     * @param data The retirement data.
+     */
+    public async fillSocialSecurityDetails(data: RetirementData): Promise<void> {
+        try {
+            await this.setSocialSecurity(true);
 
-        const modal = await this.modalDefaultValues;
-        await modal.waitForDisplayed({ timeout: 10000 });
-        await browser.waitUntil(async () => {
-            const classList = await modal.getAttribute('class');
-            return classList?.includes('show');
-        }, { timeout: 5000, timeoutMsg: 'Default values modal did not finish opening animation' });
+            // Wait for the first social security field to become visible
+            const ssFields = this.containerSocialSecurityFields;
+            if (await ssFields.length > 0) {
+                await (await ssFields)[0].waitForDisplayed({ timeout: 5000 });
+            }
 
-        await this.additionalIncome.waitForDisplayed({ timeout: 5000 });
-        await this.additionalIncome.waitForClickable({ timeout: 5000 });
-
-        if (data.additionalIncome !== undefined) {
-            await this.setMaskedValue(this.additionalIncome, data.additionalIncome);
+            if (data.relationshipStatus === 'Married') {
+                await ActionUtils.clickElement(this.labelMarried);
+            }
+            if (data.socialSecurityOverride !== undefined && data.socialSecurityOverride !== null) {
+                await ActionUtils.setMaskedValue(this.inputSocialSecurityOverride, data.socialSecurityOverride);
+            }
+        } catch (error) {
+            logger(`Error in fillSocialSecurityDetails: ${error}`);
+            throw error;
         }
-        if (data.yearsRetirementNeedsToLast !== undefined) {
-            await this.setInputValue(this.retirementDuration, data.yearsRetirementNeedsToLast);
+    }
+
+    /**
+     * Adjusts the default values via the modal window.
+     * @param data The retirement data.
+     */
+    public async adjustDefaultValues(data: RetirementData): Promise<void> {
+        try {
+            await ActionUtils.clickElement(this.adjustDefaultValuesLink);
+
+            const modal = await this.modalDefaultValues;
+            await modal.waitForDisplayed({ timeout: 10000 });
+            
+            await browser.waitUntil(async () => {
+                const classList = await modal.getAttribute('class');
+                return classList?.includes('show');
+            }, { timeout: 5000, timeoutMsg: 'Default values modal did not finish opening' });
+
+            await ActionUtils.waitForReady(this.additionalIncome, true);
+
+            if (data.additionalIncome !== undefined) {
+                await ActionUtils.setMaskedValue(this.additionalIncome, data.additionalIncome);
+            }
+            if (data.yearsRetirementNeedsToLast !== undefined) {
+                await ActionUtils.setInputValue(this.retirementDuration, data.yearsRetirementNeedsToLast);
+            }
+            if (data.postRetirementInflation !== undefined) {
+                const radioId = data.postRetirementInflation ? 'include-inflation' : 'exclude-inflation';
+                const radioLabel = await $(`label[for="${radioId}"]`);
+                await ActionUtils.waitForReady(radioLabel, true);
+                await ActionUtils.executeClick(radioLabel);
+                const radioButton = await $(`#${radioId}`);
+                await browser.waitUntil(async () => await radioButton.isSelected(), {
+                    timeout: 5000,
+                    interval: 500,
+                    timeoutMsg: `Inflation radio button #${radioId} was not selected after click`
+                });
+            }
+            if (data.percentFinalIncomeDesired !== undefined) {
+                await ActionUtils.setMaskedValue(this.retirementAnnualIncome, data.percentFinalIncomeDesired);
+            }
+            if (data.preRetirementInvestmentReturn !== undefined) {
+                await ActionUtils.setMaskedValue(this.preRetirementROI, data.preRetirementInvestmentReturn);
+            }
+            if (data.postRetirementInvestmentReturn !== undefined) {
+                await ActionUtils.setMaskedValue(this.postRetirementROI, data.postRetirementInvestmentReturn);
+            }
+
+            await ActionUtils.clickElement(this.saveButton);
+            await modal.waitForDisplayed({ timeout: 10000, reverse: true });
+        } catch (error) {
+            logger(`Error in adjustDefaultValues: ${error}`);
+            throw error;
         }
-        if (data.postRetirementInflation !== undefined) {
-            const radioId = data.postRetirementInflation ? 'include-inflation' : 'exclude-inflation';
-            const radioLabel = await $(`label[for="${radioId}"]`);
+    }
 
-            await radioLabel.waitForExist({ timeout: 5000 });
-            await browser.execute((id: string) => {
-                const el = document.querySelector(`label[for="${id}"]`) as HTMLElement | null;
-                el?.click();
-            }, radioId);
+    /**
+     * Submits the calculator form and waits for results.
+     */
+    public async submitForm(): Promise<void> {
+        try {
+            await ActionUtils.clickElement(this.btnCalculate);
 
-            const radioButton = await $(`#${radioId}`);
-            await browser.waitUntil(async () => await radioButton.isSelected(), {
-                timeout: 5000,
-                interval: 500,
-                timeoutMsg: `Inflation radio button #${radioId} was not selected after click`
+            await ActionUtils.waitForReady(this.resultsChart, false);
+
+            await browser.waitUntil(async () => {
+                const text = await this.resultMessage.getText();
+                return text.trim().length > 0;
+            }, {
+                timeout: 10000,
+                timeoutMsg: 'Result message was not populated after calculation'
             });
+        } catch (error) {
+            logger(`Error in submitForm: ${error}`);
+            throw error;
         }
-        if (data.percentFinalIncomeDesired !== undefined) {
-            await this.setMaskedValue(this.retirementAnnualIncome, data.percentFinalIncomeDesired);
-        }
-        if (data.preRetirementInvestmentReturn !== undefined) {
-            await this.setMaskedValue(this.preRetirementROI, data.preRetirementInvestmentReturn);
-        }
-        if (data.postRetirementInvestmentReturn !== undefined) {
-            await this.setMaskedValue(this.postRetirementROI, data.postRetirementInvestmentReturn);
-        }
+    }
+    
+    // Validation Methods
 
-        await this.clickElement(this.saveButton);
-        await modal.waitForDisplayed({ timeout: 10000, reverse: true });
+    /**
+     * Verifies that the required field errors are displayed correctly.
+     */
+    public async verifyRequiredFieldErrors(): Promise<void> {
+        try {
+            await expect(this.alertRequiredFields).toBeDisplayed();
+            await expect(this.alertRequiredFields).toHaveText('Please fill out all required fields');
+            await expect(this.errorCurrentAge).toBeDisplayed();
+            await expect(this.errorCurrentAge).toHaveText('Input required');
+            await expect(this.errorRetirementAge).toBeDisplayed();
+            await expect(this.errorRetirementAge).toHaveText('Input required');
+            await expect(this.errorCurrentIncome).toBeDisplayed();
+            await expect(this.errorCurrentIncome).toHaveText('Input required');
+            await expect(this.errorCurrentSavings).toBeDisplayed();
+            await expect(this.errorCurrentSavings).toHaveText('Input required');
+            await expect(this.errorAnnualSavings).toBeDisplayed();
+            await expect(this.errorAnnualSavings).toHaveText('Input required');
+            await expect(this.errorSavingsIncreaseRate).toBeDisplayed();
+            await expect(this.errorSavingsIncreaseRate).toHaveText('Input required');
+        } catch (error) {
+            logger(`Error in verifyRequiredFieldErrors: ${error}`);
+            throw error;
+        }
     }
 
-    public async submitForm() {
-        await this.clickElement(this.btnCalculate);
-
-        // Wait for the results chart to appear
-        await this.resultsChart.waitForDisplayed({
-            timeout: 20000,
-            timeoutMsg: '#results-chart did not appear after Calculate was clicked'
-        });
-
-        // Wait for the result message text to be populated
-        await browser.waitUntil(async () => {
-            const text = await this.resultMessage.getText();
-            return text.trim().length > 0;
-        }, {
-            timeout: 10000,
-            timeoutMsg: 'Result message was not populated after calculation'
-        });
+    /**
+     * Verifies that the age mismatch error is displayed correctly.
+     */
+    public async verifyAgeMismatchError(): Promise<void> {
+        try {
+            await expect(this.errorRetirementAge).toBeDisplayed();
+            await expect(this.errorRetirementAge).toHaveText('Planned retirement age must be greater than current age');
+        } catch (error) {
+            logger(`Error in verifyAgeMismatchError: ${error}`);
+            throw error;
+        }
     }
 }
 
