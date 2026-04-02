@@ -1,10 +1,6 @@
 import { browser } from '@wdio/globals';
 import CalculatorPage from '../pages/calculator.page';
-import { sampleDataList } from '../data/retirementData';
-import { ActionUtils } from '../utils/ActionUtils';
-
-const CURRENT_AGE_FOR_INVALID_TEST = 45;
-const RETIREMENT_AGE_LESS_THAN_CURRENT = 40;
+import { negativeDataList } from '../data/negativeTestData';
 
 describe('Retirement Calculator Validation (Negative Testing)', () => {
 
@@ -14,23 +10,21 @@ describe('Retirement Calculator Validation (Negative Testing)', () => {
     });
 
     it('should show validation errors when required fields are blank', async () => {
-        // Submit without filling any fields
-        await ActionUtils.clickElement(CalculatorPage.btnCalculate);
-
+        await CalculatorPage.clickCalculate();
         await CalculatorPage.verifyRequiredFieldErrors();
     });
 
-    it('should show specific error when retirement age is less than or equal to current age', async () => {
-        const sampleData = sampleDataList[0];
+    // Data-driven negative tests: iterate over every scenario in negativeData.json
+    negativeDataList.forEach((negData, index) => {
+        it(`should show age mismatch error for negative scenario ${index + 1}: ${negData.scenario}`, async () => {
+            // Step 1: Fill all required fields using the negative test data via page method
+            await CalculatorPage.fillFieldsForNegativeTest(negData);
 
-        await ActionUtils.setInputValue(CalculatorPage.inputCurrentAge, CURRENT_AGE_FOR_INVALID_TEST);
-        await ActionUtils.setInputValue(CalculatorPage.inputRetirementAge, RETIREMENT_AGE_LESS_THAN_CURRENT);
-        await ActionUtils.setMaskedValue(CalculatorPage.inputCurrentIncome, sampleData.currentAnnualIncome);
-        await ActionUtils.setMaskedValue(CalculatorPage.inputCurrentSavings, sampleData.currentRetirementSavings);
-        await ActionUtils.setMaskedValue(CalculatorPage.inputAnnualSavings, sampleData.currentRetirementContribution);
-        await ActionUtils.setMaskedValue(CalculatorPage.inputSavingsIncreaseRate, sampleData.annualContributionIncrease);
-        
-        await ActionUtils.clickElement(CalculatorPage.btnCalculate);
-        await CalculatorPage.verifyAgeMismatchError();
+            // Step 2: Submit the form
+            await CalculatorPage.clickCalculate();
+
+            // Step 3: Verify the expected validation error is displayed
+            await CalculatorPage.verifyAgeMismatchError(negData.expectedError);
+        });
     });
 });

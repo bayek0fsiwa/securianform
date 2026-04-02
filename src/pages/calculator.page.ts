@@ -1,8 +1,10 @@
 import { browser, expect, $, $$ } from '@wdio/globals';
-import { logger } from '../utils/logger';
+import { logger, logError } from '../utils/logger';
 import BasePage from './base.page';
 import { RetirementData } from '../data/retirementData';
+import { NegativeTestData } from '../data/negativeTestData';
 import { ActionUtils } from '../utils/ActionUtils';
+import { TIMEOUT_MEDIUM, TIMEOUT_LONG, POLL_INTERVAL } from '../utils/constants';
 
 class CalculatorPage extends BasePage {
 
@@ -58,7 +60,7 @@ class CalculatorPage extends BasePage {
         try {
             await super.open('');
         } catch (error) {
-            logger(`Error in open: ${error}`);
+            logError(`Error in open: ${error}`);
             throw error;
         }
     }
@@ -78,7 +80,7 @@ class CalculatorPage extends BasePage {
             await ActionUtils.setMaskedValue(this.inputAnnualSavings, data.currentRetirementContribution);
             await ActionUtils.setMaskedValue(this.inputSavingsIncreaseRate, data.annualContributionIncrease);
         } catch (error) {
-            logger(`Error in fillRequiredFields: ${error}`);
+            logError(`Error in fillRequiredFields: ${error}`);
             throw error;
         }
     }
@@ -93,7 +95,7 @@ class CalculatorPage extends BasePage {
                 await ActionUtils.setMaskedValue(this.inputSpouseIncome, data.spouseAnnualIncome);
             }
         } catch (error) {
-            logger(`Error in fillOptionalIncomeFields: ${error}`);
+            logError(`Error in fillOptionalIncomeFields: ${error}`);
             throw error;
         }
     }
@@ -110,7 +112,7 @@ class CalculatorPage extends BasePage {
                 await ActionUtils.clickElement(this.labelSocialSecurityNo);
             }
         } catch (error) {
-            logger(`Error in setSocialSecurity: ${error}`);
+            logError(`Error in setSocialSecurity: ${error}`);
             throw error;
         }
     }
@@ -126,7 +128,7 @@ class CalculatorPage extends BasePage {
             // Wait for the first social security field to become visible
             const ssFields = this.containerSocialSecurityFields;
             if (await ssFields.length > 0) {
-                await (await ssFields)[0].waitForDisplayed({ timeout: 5000 });
+                await (await ssFields)[0].waitForDisplayed({ timeout: TIMEOUT_MEDIUM });
             }
 
             if (data.relationshipStatus === 'Married') {
@@ -136,7 +138,7 @@ class CalculatorPage extends BasePage {
                 await ActionUtils.setMaskedValue(this.inputSocialSecurityOverride, data.socialSecurityOverride);
             }
         } catch (error) {
-            logger(`Error in fillSocialSecurityDetails: ${error}`);
+            logError(`Error in fillSocialSecurityDetails: ${error}`);
             throw error;
         }
     }
@@ -150,12 +152,12 @@ class CalculatorPage extends BasePage {
             await ActionUtils.clickElement(this.adjustDefaultValuesLink);
 
             const modal = await this.modalDefaultValues;
-            await modal.waitForDisplayed({ timeout: 10000 });
+            await modal.waitForDisplayed({ timeout: TIMEOUT_LONG });
             
             await browser.waitUntil(async () => {
                 const classList = await modal.getAttribute('class');
                 return classList?.includes('show');
-            }, { timeout: 5000, timeoutMsg: 'Default values modal did not finish opening' });
+            }, { timeout: TIMEOUT_MEDIUM, timeoutMsg: 'Default values modal did not finish opening' });
 
             await ActionUtils.waitForReady(this.additionalIncome, true);
 
@@ -172,8 +174,8 @@ class CalculatorPage extends BasePage {
                 await ActionUtils.executeClick(radioLabel);
                 const radioButton = await $(`#${radioId}`);
                 await browser.waitUntil(async () => await radioButton.isSelected(), {
-                    timeout: 5000,
-                    interval: 500,
+                    timeout: TIMEOUT_MEDIUM,
+                    interval: POLL_INTERVAL,
                     timeoutMsg: `Inflation radio button #${radioId} was not selected after click`
                 });
             }
@@ -188,9 +190,9 @@ class CalculatorPage extends BasePage {
             }
 
             await ActionUtils.clickElement(this.saveButton);
-            await modal.waitForDisplayed({ timeout: 10000, reverse: true });
+            await modal.waitForDisplayed({ timeout: TIMEOUT_LONG, reverse: true });
         } catch (error) {
-            logger(`Error in adjustDefaultValues: ${error}`);
+            logError(`Error in adjustDefaultValues: ${error}`);
             throw error;
         }
     }
@@ -208,11 +210,11 @@ class CalculatorPage extends BasePage {
                 const text = await this.resultMessage.getText();
                 return text.trim().length > 0;
             }, {
-                timeout: 10000,
+                timeout: TIMEOUT_LONG,
                 timeoutMsg: 'Result message was not populated after calculation'
             });
         } catch (error) {
-            logger(`Error in submitForm: ${error}`);
+            logError(`Error in submitForm: ${error}`);
             throw error;
         }
     }
@@ -239,20 +241,56 @@ class CalculatorPage extends BasePage {
             await expect(this.errorSavingsIncreaseRate).toBeDisplayed();
             await expect(this.errorSavingsIncreaseRate).toHaveText('Input required');
         } catch (error) {
-            logger(`Error in verifyRequiredFieldErrors: ${error}`);
+            logError(`Error in verifyRequiredFieldErrors: ${error}`);
             throw error;
         }
     }
 
     /**
      * Verifies that the age mismatch error is displayed correctly.
+     * @param expectedMessage Optional custom expected error message. Defaults to the standard mismatch text.
      */
-    public async verifyAgeMismatchError(): Promise<void> {
+    public async verifyAgeMismatchError(
+        expectedMessage = 'Planned retirement age must be greater than current age'
+    ): Promise<void> {
         try {
             await expect(this.errorRetirementAge).toBeDisplayed();
-            await expect(this.errorRetirementAge).toHaveText('Planned retirement age must be greater than current age');
+            await expect(this.errorRetirementAge).toHaveText(expectedMessage);
         } catch (error) {
-            logger(`Error in verifyAgeMismatchError: ${error}`);
+            logError(`Error in verifyAgeMismatchError: ${error}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Fills the required fields using negative test data for validation scenarios.
+     * Uses NegativeTestData which contains only the fields needed for negative testing.
+     * @param data The negative test data containing the invalid field values.
+     */
+    public async fillFieldsForNegativeTest(data: NegativeTestData): Promise<void> {
+        try {
+            logger(`Filling fields for negative test scenario: ${data.scenario}`);
+            await ActionUtils.setInputValue(this.inputCurrentAge, data.currentAge);
+            await ActionUtils.setInputValue(this.inputRetirementAge, data.retirementAge);
+            await ActionUtils.setMaskedValue(this.inputCurrentIncome, data.currentAnnualIncome);
+            await ActionUtils.setMaskedValue(this.inputCurrentSavings, data.currentRetirementSavings);
+            await ActionUtils.setMaskedValue(this.inputAnnualSavings, data.currentRetirementContribution);
+            await ActionUtils.setMaskedValue(this.inputSavingsIncreaseRate, data.annualContributionIncrease);
+        } catch (error) {
+            logError(`Error in fillFieldsForNegativeTest: ${error}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Clicks the calculate button without waiting for results.
+     * Used for negative test scenarios where form submission is expected to show validation errors.
+     */
+    public async clickCalculate(): Promise<void> {
+        try {
+            await ActionUtils.clickElement(this.btnCalculate);
+        } catch (error) {
+            logError(`Error in clickCalculate: ${error}`);
             throw error;
         }
     }

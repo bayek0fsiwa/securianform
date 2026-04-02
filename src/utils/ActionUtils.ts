@@ -1,8 +1,11 @@
 import { browser } from '@wdio/globals';
 import allureReporter from '@wdio/allure-reporter';
-import { logger } from './logger';
+import { logger, logError } from './logger';
+import { TIMEOUT_SHORT, TIMEOUT_MEDIUM, POLL_INTERVAL } from './constants';
 
-export type ElementArg = any;
+export type ElementArg = WebdriverIO.Element | ChainablePromiseElement | Promise<WebdriverIO.Element>;
+
+type ChainablePromiseElement = ReturnType<typeof browser.$>;
 
 export class ActionUtils {
 
@@ -12,7 +15,7 @@ export class ActionUtils {
      * @param clickable If true, waits for clickable. If false, waits for enabled.
      */
     public static async waitForReady(element: ElementArg, clickable = false): Promise<void> {
-        const el = await element;
+        const el = await element as WebdriverIO.Element;
         const selector = el?.selector ?? 'unknown selector';
         try {
             await el.waitForDisplayed();
@@ -23,7 +26,7 @@ export class ActionUtils {
                 await el.waitForEnabled();
             }
         } catch (error) {
-            logger(`Error waiting for element ${selector} to be ready: ${error}`);
+            logError(`Error waiting for element ${selector} to be ready: ${error}`);
             throw new Error(`Failed to wait for ${selector}: ${error}`);
         }
     }
@@ -37,7 +40,7 @@ export class ActionUtils {
             await browser.keys(['Control', 'a', 'Backspace']);
             await browser.keys(['Control', 'a', 'Delete']);
         } catch (error) {
-            logger(`Error clearing text via keys: ${error}`);
+            logError(`Error clearing text via keys: ${error}`);
             throw new Error(`Failed to clear text via keys: ${error}`);
         }
     }
@@ -50,7 +53,7 @@ export class ActionUtils {
             await this.clearTextViaKeys();
             await browser.keys('Tab');
         } catch (error) {
-            logger(`Error clearing text via keys and tab: ${error}`);
+            logError(`Error clearing text via keys and tab: ${error}`);
             throw new Error(`Failed to clear text via keys and tab: ${error}`);
         }
     }
@@ -60,7 +63,7 @@ export class ActionUtils {
      * @param element The element to click.
      */
     public static async executeClick(element: ElementArg): Promise<void> {
-        const el = await element;
+        const el = await element as WebdriverIO.Element;
         const selector = el.selector;
         try {
             await browser.execute((elem: HTMLElement) => {
@@ -70,7 +73,7 @@ export class ActionUtils {
                 }
             }, el as unknown as HTMLElement);
         } catch (error) {
-            logger(`Error executing click on element ${selector}: ${error}`);
+            logError(`Error executing click on element ${selector}: ${error}`);
             throw new Error(`Failed to execute click on ${selector}: ${error}`);
         }
     }
@@ -80,7 +83,7 @@ export class ActionUtils {
      * @param element The element to blur.
      */
     public static async executeBlur(element: ElementArg): Promise<void> {
-        const el = await element;
+        const el = await element as WebdriverIO.Element;
         const selector = el.selector;
         try {
             await browser.execute((elem: HTMLElement) => {
@@ -89,7 +92,7 @@ export class ActionUtils {
                 }
             }, el as unknown as HTMLElement);
         } catch (error) {
-            logger(`Error executing blur on element ${selector}: ${error}`);
+            logError(`Error executing blur on element ${selector}: ${error}`);
             throw new Error(`Failed to execute blur on ${selector}: ${error}`);
         }
     }
@@ -99,7 +102,7 @@ export class ActionUtils {
      * @param element The element to clear.
      */
     public static async executeClearRawValue(element: ElementArg): Promise<void> {
-        const el = await element;
+        const el = await element as WebdriverIO.Element;
         const selector = el.selector;
         try {
             await browser.execute((elem: HTMLInputElement) => {
@@ -110,7 +113,7 @@ export class ActionUtils {
                 }
             }, el as unknown as HTMLInputElement);
         } catch (error) {
-            logger(`Error executing clear on element ${selector}: ${error}`);
+            logError(`Error executing clear on element ${selector}: ${error}`);
             throw new Error(`Failed to execute clear on ${selector}: ${error}`);
         }
     }
@@ -121,7 +124,7 @@ export class ActionUtils {
      * @param value The value to set.
      */
     public static async setInputValue(element: ElementArg, value: string | number): Promise<void> {
-        const el = await element;
+        const el = await element as WebdriverIO.Element;
         const selector = el.selector;
         try {
             logger(`Setting value "${value}" on ${selector}`);
@@ -134,9 +137,9 @@ export class ActionUtils {
             await browser.waitUntil(async () => {
                 const raw = await el.getValue();
                 return raw.includes(value.toString());
-            }, { timeout: 3000, timeoutMsg: `Value "${value}" was not set in ${selector}` });
+            }, { timeout: TIMEOUT_SHORT, timeoutMsg: `Value "${value}" was not set in ${selector}` });
         } catch (error) {
-            logger(`Error setting input value on element ${selector}: ${error}`);
+            logError(`Error setting input value on element ${selector}: ${error}`);
             throw new Error(`Failed to set input value on ${selector}: ${error}`);
         }
     }
@@ -147,7 +150,7 @@ export class ActionUtils {
      * @param value The value to set.
      */
     public static async setMaskedValue(element: ElementArg, value: string | number): Promise<void> {
-        const el = await element;
+        const el = await element as WebdriverIO.Element;
         const selector = el.selector;
         try {
             logger(`Setting masked value "${value}" on ${selector}`);
@@ -167,12 +170,12 @@ export class ActionUtils {
                 const rawNumeric = (await el.getValue()).replace(/[^0-9.]/g, '');
                 return rawNumeric.includes(numericStr);
             }, {
-                timeout: 5000,
-                interval: 500,
+                timeout: TIMEOUT_MEDIUM,
+                interval: POLL_INTERVAL,
                 timeoutMsg: `Masked value "${value}" not confirmed in ${selector}`
             });
         } catch (error) {
-            logger(`Error setting masked value on element ${selector}: ${error}`);
+            logError(`Error setting masked value on element ${selector}: ${error}`);
             throw new Error(`Failed to set masked value on ${selector}: ${error}`);
         }
     }
@@ -182,7 +185,7 @@ export class ActionUtils {
      * @param element The element to click.
      */
     public static async clickElement(element: ElementArg): Promise<void> {
-        const el = await element;
+        const el = await element as WebdriverIO.Element;
         const selector = el.selector;
         try {
             logger(`Clicking on ${selector}`);
@@ -190,7 +193,7 @@ export class ActionUtils {
             await this.waitForReady(el, true);
             await this.executeClick(el);
         } catch (error) {
-            logger(`Error clicking on element ${selector}: ${error}`);
+            logError(`Error clicking on element ${selector}: ${error}`);
             throw new Error(`Failed to click on ${selector}: ${error}`);
         }
     }

@@ -1,6 +1,6 @@
 import { browser } from '@wdio/globals';
 import allureReporter from '@wdio/allure-reporter';
-import { logger } from '../utils/logger';
+import { logger, logError } from '../utils/logger';
 
 export default class BasePage {
 
@@ -14,7 +14,7 @@ export default class BasePage {
             allureReporter.addStep(`Opening URL: ${path}`);
             await browser.url(path);
         } catch (error) {
-            logger(`Error opening URL ${path}: ${error}`);
+            logError(`Error opening URL ${path}: ${error}`);
             throw new Error(`Failed to open URL ${path}: ${error}`);
         }
     }
