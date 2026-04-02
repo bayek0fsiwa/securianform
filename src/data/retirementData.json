@@ -34,5 +34,41 @@
         "percentFinalIncomeDesired": 80,
         "preRetirementInvestmentReturn": 7,
         "postRetirementInvestmentReturn": 4
+    },
+    {
+        "currentAge": 25,
+        "retirementAge": 60,
+        "currentAnnualIncome": 55000,
+        "spouseAnnualIncome": 45000,
+        "currentRetirementSavings": 20000,
+        "currentRetirementContribution": 8,
+        "annualContributionIncrease": 3,
+        "socialSecurityIncome": true,
+        "relationshipStatus": "Married",
+        "socialSecurityOverride": 2500,
+        "additionalIncome": 200,
+        "yearsRetirementNeedsToLast": 30,
+        "postRetirementInflation": true,
+        "percentFinalIncomeDesired": 70,
+        "preRetirementInvestmentReturn": 9,
+        "postRetirementInvestmentReturn": 6
+    },
+    {
+        "currentAge": 50,
+        "retirementAge": 70,
+        "currentAnnualIncome": 150000,
+        "spouseAnnualIncome": 0,
+        "currentRetirementSavings": 800000,
+        "currentRetirementContribution": 20,
+        "annualContributionIncrease": 1,
+        "socialSecurityIncome": false,
+        "relationshipStatus": "Single",
+        "socialSecurityOverride": 0,
+        "additionalIncome": 1000,
+        "yearsRetirementNeedsToLast": 15,
+        "postRetirementInflation": false,
+        "percentFinalIncomeDesired": 90,
+        "preRetirementInvestmentReturn": 6,
+        "postRetirementInvestmentReturn": 3
     }
 ]

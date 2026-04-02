@@ -1,0 +1,42 @@
+[
+    {
+        "scenario": "Retirement age less than current age",
+        "currentAge": 45,
+        "retirementAge": 40,
+        "currentAnnualIncome": 100000,
+        "currentRetirementSavings": 500000,
+        "currentRetirementContribution": 10,
+        "annualContributionIncrease": 1,
+        "expectedError": "Planned retirement age must be greater than current age"
+    },
+    {
+        "scenario": "Retirement age equal to current age",
+        "currentAge": 50,
+        "retirementAge": 50,
+        "currentAnnualIncome": 80000,
+        "currentRetirementSavings": 200000,
+        "currentRetirementContribution": 12,
+        "annualContributionIncrease": 2,
+        "expectedError": "Planned retirement age must be greater than current age"
+    },
+    {
+        "scenario": "Current age at lower boundary (18) with higher retirement age",
+        "currentAge": 18,
+        "retirementAge": 15,
+        "currentAnnualIncome": 50000,
+        "currentRetirementSavings": 0,
+        "currentRetirementContribution": 5,
+        "annualContributionIncrease": 1,
+        "expectedError": "Planned retirement age must be greater than current age"
+    },
+    {
+        "scenario": "High current age with retirement age just below",
+        "currentAge": 67,
+        "retirementAge": 66,
+        "currentAnnualIncome": 120000,
+        "currentRetirementSavings": 1000000,
+        "currentRetirementContribution": 20,
+        "annualContributionIncrease": 3,
+        "expectedError": "Planned retirement age must be greater than current age"
+    }
+]

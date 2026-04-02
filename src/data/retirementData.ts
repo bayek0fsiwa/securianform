@@ -1,5 +1,6 @@
 import data from './retirementData.json';
 
+
 export interface RetirementData {
     currentAge: number;
     retirementAge: number;
