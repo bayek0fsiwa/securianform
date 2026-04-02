@@ -24,7 +24,7 @@ export const config: WebdriverIO.Config = {
     logLevel: 'info',
 
     bail: 0,
-    baseUrl: process.env.BASE_URL,
+    baseUrl: process.env.BASE_URL || 'https://www.securian.com/insights-tools/retirement-calculator.html',
     waitforTimeout: 10000,
 
     connectionRetryTimeout: 120000,
@@ -43,7 +43,6 @@ export const config: WebdriverIO.Config = {
 
     jasmineOpts: {
         defaultTimeoutInterval: 60000,
-        expectationResultHandler: function (_passed, _assertion) {}
     },
 
     afterTest: async function (_test, _context, { passed }) {
