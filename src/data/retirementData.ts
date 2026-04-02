@@ -19,4 +19,4 @@ export interface RetirementData {
     postRetirementInvestmentReturn?: number;
 }
 
-export const sampleData: RetirementData = data;
+export const sampleDataList: RetirementData[] = data;
